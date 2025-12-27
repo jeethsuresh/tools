@@ -7,16 +7,55 @@ import { getAllToolMetadata, getToolById } from "@/tools/registry";
 
 export default function Home() {
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const toolsMetadata = getAllToolMetadata();
   const activeTool = activeToolId ? getToolById(activeToolId) : null;
   const ActiveToolComponent = activeTool?.component;
 
+  const handleToolSelect = (toolId: string) => {
+    setActiveToolId(toolId);
+    setIsMobileMenuOpen(false); // Close mobile menu when tool is selected
+  };
+
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen relative">
+      {/* Hamburger Menu Button - Always visible on mobile */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        aria-label="Toggle menu"
+      >
+        <svg
+          className="w-6 h-6 text-gray-900 dark:text-gray-100"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          {isMobileMenuOpen ? (
+            <path d="M6 18L18 6M6 6l12 12" />
+          ) : (
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          )}
+        </svg>
+      </button>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       <Sidebar
         tools={toolsMetadata}
         activeToolId={activeToolId}
-        onToolSelect={setActiveToolId}
+        onToolSelect={handleToolSelect}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
       <DetailPane>
         {ActiveToolComponent ? (

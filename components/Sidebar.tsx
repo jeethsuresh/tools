@@ -6,19 +6,55 @@ interface SidebarProps {
   tools: ToolMetadata[];
   activeToolId: string | null;
   onToolSelect: (toolId: string) => void;
+  isMobileMenuOpen?: boolean;
+  onCloseMobileMenu?: () => void;
 }
 
 export default function Sidebar({
   tools,
   activeToolId,
   onToolSelect,
+  isMobileMenuOpen = false,
+  onCloseMobileMenu,
 }: SidebarProps) {
   return (
-    <aside className="w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-screen overflow-y-auto">
+    <aside
+      className={`
+        fixed md:static
+        top-0 left-0
+        w-64 h-screen
+        border-r border-gray-200 dark:border-gray-800
+        bg-white dark:bg-gray-900
+        overflow-y-auto
+        z-50 md:z-auto
+        transform transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+      `}
+    >
       <div className="p-4">
-        <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-          Tools
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Tools
+          </h2>
+          {/* Close button for mobile */}
+          <button
+            onClick={onCloseMobileMenu}
+            className="md:hidden p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+            aria-label="Close menu"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
         <nav className="space-y-1">
           {tools.map((tool) => (
             <button
