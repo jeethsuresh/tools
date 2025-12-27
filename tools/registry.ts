@@ -4,6 +4,7 @@ import Base64Tool from "./base64/Base64Tool";
 import CsvJsonTool from "./csvjson/CsvJsonTool";
 import TimerStopwatchTool from "./timer/TimerStopwatchTool";
 import TimezoneTool from "./timezone/TimezoneTool";
+import PhotoBoothTool from "./photobooth/PhotoBoothTool";
 
 /**
  * Registry of all available tools
@@ -49,6 +50,14 @@ export const tools: Tool[] = [
       description: "Convert times between different timezones",
     },
     component: TimezoneTool,
+  },
+  {
+    metadata: {
+      id: "photobooth",
+      name: "Photo Booth",
+      description: "Test your webcam and microphone with photo capture",
+    },
+    component: PhotoBoothTool,
   },
 ];
 
