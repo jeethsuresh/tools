@@ -61,14 +61,14 @@ export const tools: Tool[] = [
     },
     component: PhotoBoothTool,
   },
-  {
-    metadata: {
-      id: "playlist",
-      name: "Music Playlist",
-      description: "Create and play playlists of YouTube music videos",
-    },
-    component: PlaylistTool,
-  },
+  // {
+  //   metadata: {
+  //     id: "playlist",
+  //     name: "Music Playlist",
+  //     description: "Create and play playlists of YouTube music videos",
+  //   },
+  //   component: PlaylistTool,
+  // },
   {
     metadata: {
       id: "ipmask",
