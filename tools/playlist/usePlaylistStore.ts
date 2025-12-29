@@ -1,5 +1,11 @@
 import { create } from "zustand";
 
+declare global {
+  interface Window {
+    playlistLoadVideoImmediately?: (videoId: string) => void;
+  }
+}
+
 export interface PlaylistItem {
   id: string;
   videoId: string;
@@ -271,80 +277,97 @@ export const usePlaylistStore = create<PlaylistState>((set) => ({
   },
   
   handleDoubleClickSong: (clickedIndex) => {
+    // Get video ID first (synchronous read, fast)
+    let clickedVideoId: string | undefined;
     set((state) => {
       if (clickedIndex === state.currentIndex) return state;
-      
-      const played = Array.from(state.playedSongs).filter(i => i !== state.currentIndex).sort((a, b) => a - b);
-      const unplayed = Array.from({ length: state.playlist.length }, (_, i) => i)
-        .filter(i => !state.playedSongs.has(i) || i === state.currentIndex);
-      
-      let upcomingList: number[];
-      if (state.isShuffle && state.shuffleOrder.length > 0) {
-        upcomingList = state.shuffleOrder;
-      } else {
-        if (state.currentIndex >= 0 && unplayed.includes(state.currentIndex)) {
-          upcomingList = [state.currentIndex, ...unplayed.filter(i => i !== state.currentIndex).sort((a, b) => a - b)];
+      clickedVideoId = state.playlist[clickedIndex]?.videoId;
+      return state; // Just read, don't update yet
+    });
+    
+    // Update currentIndex immediately (fast, non-blocking)
+    set((state) => {
+      if (clickedIndex === state.currentIndex) return state;
+      return { currentIndex: clickedIndex };
+    });
+    
+    // Load video immediately (non-blocking)
+    if (clickedVideoId) {
+      setTimeout(() => {
+        const loadVideo = (window as any).playlistLoadVideoImmediately;
+        if (loadVideo && typeof loadVideo === 'function') {
+          loadVideo(clickedVideoId!);
+        }
+      }, 0);
+    }
+    
+    // Do complex playlist logic asynchronously (non-blocking)
+    setTimeout(() => {
+      set((state) => {
+        if (state.currentIndex !== clickedIndex) return state; // State changed, skip
+        
+        const played = Array.from(state.playedSongs).filter(i => i !== state.currentIndex).sort((a, b) => a - b);
+        const unplayed = Array.from({ length: state.playlist.length }, (_, i) => i)
+          .filter(i => !state.playedSongs.has(i) || i === state.currentIndex);
+        
+        let upcomingList: number[];
+        if (state.isShuffle && state.shuffleOrder.length > 0) {
+          upcomingList = state.shuffleOrder;
         } else {
-          upcomingList = unplayed.sort((a, b) => a - b);
-        }
-      }
-      
-      const orderedList = [...played, ...upcomingList];
-      const currentPos = orderedList.indexOf(state.currentIndex);
-      const clickedPos = orderedList.indexOf(clickedIndex);
-      
-      if (currentPos >= 0 && clickedPos >= 0 && clickedPos > currentPos) {
-        const songsToMarkAsFinished: number[] = [];
-        for (let i = currentPos; i < clickedPos; i++) {
-          songsToMarkAsFinished.push(orderedList[i]);
+          if (state.currentIndex >= 0 && unplayed.includes(state.currentIndex)) {
+            upcomingList = [state.currentIndex, ...unplayed.filter(i => i !== state.currentIndex).sort((a, b) => a - b)];
+          } else {
+            upcomingList = unplayed.sort((a, b) => a - b);
+          }
         }
         
-        const newSet = new Set(state.playedSongs);
-        songsToMarkAsFinished.forEach(i => newSet.add(i));
+        const orderedList = [...played, ...upcomingList];
+        const currentPos = orderedList.indexOf(state.currentIndex);
+        const clickedPos = orderedList.indexOf(clickedIndex);
         
-        return {
-          currentIndex: clickedIndex,
-          playedSongs: newSet,
-        };
-      } else if (clickedPos >= 0 && clickedPos < currentPos) {
-        const songsToMove: number[] = [];
-        for (let i = clickedPos + 1; i < currentPos; i++) {
-          songsToMove.push(orderedList[i]);
-        }
-        if (state.currentIndex >= 0) {
-          songsToMove.push(state.currentIndex);
-        }
-        
-        if (songsToMove.length > 0) {
-          const newSet = new Set(state.playedSongs);
-          songsToMove.forEach(index => newSet.delete(index));
-          
-          let newShuffleOrder = state.shuffleOrder;
-          if (state.isShuffle && state.shuffleOrder.length > 0) {
-            const remainingInShuffle = state.shuffleOrder.filter(i => 
-              !songsToMove.includes(i) && i !== clickedIndex
-            );
-            newShuffleOrder = [clickedIndex, ...songsToMove, ...remainingInShuffle];
+        if (currentPos >= 0 && clickedPos >= 0 && clickedPos > currentPos) {
+          const songsToMarkAsFinished: number[] = [];
+          for (let i = currentPos; i < clickedPos; i++) {
+            songsToMarkAsFinished.push(orderedList[i]);
           }
           
+          const newSet = new Set(state.playedSongs);
+          songsToMarkAsFinished.forEach(i => newSet.add(i));
+          
           return {
-            currentIndex: clickedIndex,
             playedSongs: newSet,
-            shuffleOrder: newShuffleOrder,
           };
+        } else if (clickedPos >= 0 && clickedPos < currentPos) {
+          const songsToMove: number[] = [];
+          for (let i = clickedPos + 1; i < currentPos; i++) {
+            songsToMove.push(orderedList[i]);
+          }
+          if (state.currentIndex >= 0) {
+            songsToMove.push(state.currentIndex);
+          }
+          
+          if (songsToMove.length > 0) {
+            const newSet = new Set(state.playedSongs);
+            songsToMove.forEach(index => newSet.delete(index));
+            
+            let newShuffleOrder = state.shuffleOrder;
+            if (state.isShuffle && state.shuffleOrder.length > 0) {
+              const remainingInShuffle = state.shuffleOrder.filter(i => 
+                !songsToMove.includes(i) && i !== clickedIndex
+              );
+              newShuffleOrder = [clickedIndex, ...songsToMove, ...remainingInShuffle];
+            }
+            
+            return {
+              playedSongs: newSet,
+              shuffleOrder: newShuffleOrder,
+            };
+          }
         }
         
-        return {
-          currentIndex: clickedIndex,
-        };
-      } else if (clickedPos >= 0) {
-        return {
-          currentIndex: clickedIndex,
-        };
-      }
-      
-      return state;
-    });
+        return state;
+      });
+    }, 0);
   },
 }));
 

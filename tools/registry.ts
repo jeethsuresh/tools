@@ -7,6 +7,7 @@ import TimezoneTool from "./timezone/TimezoneTool";
 import PhotoBoothTool from "./photobooth/PhotoBoothTool";
 import PlaylistTool from "./playlist/PlaylistTool";
 import IPMaskTool from "./ipmask/IPMaskTool";
+import DiaryTool from "./diary/DiaryTool";
 
 /**
  * Registry of all available tools
@@ -76,6 +77,14 @@ export const tools: Tool[] = [
       description: "Calculate subnet masks, check network classes, detect conflicts, and generate optimal subnets",
     },
     component: IPMaskTool,
+  },
+  {
+    metadata: {
+      id: "diary",
+      name: "Diary & Calendar",
+      description: "Journal entries and event planning with calendar views (day/week/month)",
+    },
+    component: DiaryTool,
   },
 ];
 

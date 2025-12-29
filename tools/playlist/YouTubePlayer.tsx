@@ -324,6 +324,20 @@ export function YouTubePlayer() {
                 if (event.data === window.YT.PlayerState.PLAYING) {
                   setIsPlaying(true);
                   startTimeTracking();
+                  // Clear pending when actually playing
+                  if (pendingVideoIdRef.current) {
+                    try {
+                      const duration = event.target.getDuration();
+                      if (duration > 0 && isFinite(duration)) {
+                        isPlayerReadyRef.current = true;
+                        setDuration(duration);
+                        setCurrentTime(0);
+                        pendingVideoIdRef.current = null;
+                      }
+                    } catch (e) {
+                      // Ignore
+                    }
+                  }
                 } else if (event.data === window.YT.PlayerState.PAUSED) {
                   setIsPlaying(false);
                   stopTimeTracking();
@@ -331,6 +345,28 @@ export function YouTubePlayer() {
                   setIsPlaying(false);
                   stopTimeTracking();
                   handleNextRef.current();
+                } else if (event.data === window.YT.PlayerState.BUFFERING) {
+                  // Video is buffering - try to play immediately, multiple times
+                  // No state updates - let onStateChange handle it when actually playing
+                  if (pendingVideoIdRef.current && playerRef.current) {
+                    try {
+                      // Try immediately
+                      playerRef.current.playVideo();
+                      
+                      // Try again in next tick
+                      setTimeout(() => {
+                        try {
+                          if (playerRef.current && pendingVideoIdRef.current) {
+                            playerRef.current.playVideo();
+                          }
+                        } catch (e) {
+                          // Ignore
+                        }
+                      }, 0);
+                    } catch (e) {
+                      // Ignore
+                    }
+                  }
                 } else if (event.data === window.YT.PlayerState.CUED) {
                   // Video is cued and ready - immediately try to play
                   if (pendingVideoIdRef.current && playerRef.current) {
@@ -383,47 +419,79 @@ export function YouTubePlayer() {
           
           // Set pending video ID to track when it's ready
           pendingVideoIdRef.current = currentItem.videoId;
-          // Set isPlaying to true when navigating to a new video to ensure auto-play
-          setIsPlaying(true);
+          // Don't set isPlaying here - let onStateChange handle it when video actually starts
           
-          // Use cueVideoById which is faster than loadVideoById
-          playerRef.current.cueVideoById({
+          // Use loadVideoById - it's more reliable for autoplay
+          playerRef.current.loadVideoById({
             videoId: currentItem.videoId,
             startSeconds: 0,
           });
           
           currentVideoIdRef.current = currentItem.videoId;
           
-          // Immediately try to play - don't wait for anything
+          // Store the aggressive play loop ref so we can clear it
+          const aggressivePlayLoopRef = { current: null as number | null };
+          
+          // Multiple immediate play attempts - just call playVideo(), no state updates
+          // State will be updated by onStateChange when video actually starts
           try {
             if (playerRef.current) {
               playerRef.current.playVideo();
-              setIsPlaying(true);
             }
           } catch (e) {
-            // Ignore - will retry in loop
+            // Ignore
           }
           
-          // Ultra-aggressive play loop - call playVideo() continuously without any checks
-          // This will queue the play command and YouTube will start as soon as video is ready
-          let playAttempts = 0;
-          const maxPlayAttempts = 400; // Try for 2 seconds (200 * 10ms)
+          // Try 2: Next tick
+          setTimeout(() => {
+            try {
+              if (playerRef.current && pendingVideoIdRef.current === currentItem.videoId) {
+                playerRef.current.playVideo();
+              }
+            } catch (e) {
+              // Ignore
+            }
+          }, 0);
           
-          const aggressivePlayLoop = setInterval(() => {
-            if (!playerRef.current || pendingVideoIdRef.current !== currentItem.videoId) {
-              clearInterval(aggressivePlayLoop);
+          // Try 3: After 1ms
+          setTimeout(() => {
+            try {
+              if (playerRef.current && pendingVideoIdRef.current === currentItem.videoId) {
+                playerRef.current.playVideo();
+              }
+            } catch (e) {
+              // Ignore
+            }
+          }, 1);
+          
+          // Ultra-aggressive play loop using requestAnimationFrame for maximum speed
+          let playAttempts = 0;
+          const maxPlayAttempts = 1000; // Try for ~16 seconds at 60fps
+          let rafId: number | null = null;
+          
+          const tryPlay = () => {
+            if (!playerRef.current) {
+              if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+              }
+              return;
+            }
+            
+            // Check if we should stop (video changed or already playing)
+            if (pendingVideoIdRef.current !== currentItem.videoId) {
+              if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+              }
               return;
             }
             
             try {
-              // Just try to play - no checks, no conditions
-              playerRef.current.playVideo();
-              setIsPlaying(true);
-              
-              // Check if actually playing
               const playerState = playerRef.current.getPlayerState();
+              
+              // If already playing, we're done
               if (playerState === window.YT.PlayerState.PLAYING) {
-                // Success! Update state
                 try {
                   const duration = playerRef.current.getDuration();
                   if (duration > 0 && isFinite(duration)) {
@@ -437,26 +505,36 @@ export function YouTubePlayer() {
                       checkReadyIntervalRef.current = null;
                     }
                     pendingVideoIdRef.current = null;
-                    clearInterval(aggressivePlayLoop);
-                    return;
                   }
                 } catch (e) {
                   // Ignore
                 }
+                if (rafId !== null) {
+                  cancelAnimationFrame(rafId);
+                  rafId = null;
+                }
+                return;
               }
               
+              // Just try to play - no state updates, let onStateChange handle it
+              playerRef.current.playVideo();
+              
               playAttempts++;
-              if (playAttempts >= maxPlayAttempts) {
-                clearInterval(aggressivePlayLoop);
+              if (playAttempts < maxPlayAttempts) {
+                rafId = requestAnimationFrame(tryPlay);
               }
             } catch (e) {
               // Ignore errors, keep trying
               playAttempts++;
-              if (playAttempts >= maxPlayAttempts) {
-                clearInterval(aggressivePlayLoop);
+              if (playAttempts < maxPlayAttempts) {
+                rafId = requestAnimationFrame(tryPlay);
               }
             }
-          }, 5); // Try every 5ms
+          };
+          
+          // Start the aggressive play loop
+          rafId = requestAnimationFrame(tryPlay);
+          aggressivePlayLoopRef.current = rafId;
 
           // Fallback polling with shorter timeout (1 second instead of 5)
           const checkReady = setInterval(() => {
@@ -591,18 +669,85 @@ export function YouTubePlayer() {
     };
   }, [currentIndex]);
 
-  // Expose player ref via window for other components
-  // The ref object itself is stable, only .current changes
+  // Function to load video immediately (called from store)
+  const loadVideoImmediately = (videoId: string) => {
+    if (!playerRef.current) return;
+    
+    // Clear any existing intervals
+    if (checkReadyIntervalRef.current) {
+      clearInterval(checkReadyIntervalRef.current);
+      checkReadyIntervalRef.current = null;
+    }
+    
+    // Set pending video ID
+    pendingVideoIdRef.current = videoId;
+    currentVideoIdRef.current = videoId;
+    
+    // Load video immediately
+    playerRef.current.loadVideoById({
+      videoId: videoId,
+      startSeconds: 0,
+    });
+    
+    // Immediately try to play
+    try {
+      if (playerRef.current) {
+        playerRef.current.playVideo();
+      }
+    } catch (e) {
+      // Ignore
+    }
+    
+    // Start aggressive play loop
+    let playAttempts = 0;
+    const maxPlayAttempts = 1000;
+    let rafId: number | null = null;
+    
+    const tryPlay = () => {
+      if (!playerRef.current || pendingVideoIdRef.current !== videoId) {
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+        }
+        return;
+      }
+      
+      try {
+        const playerState = playerRef.current.getPlayerState();
+        if (playerState === window.YT.PlayerState.PLAYING) {
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+          }
+          return;
+        }
+        playerRef.current.playVideo();
+        playAttempts++;
+        if (playAttempts < maxPlayAttempts) {
+          rafId = requestAnimationFrame(tryPlay);
+        }
+      } catch (e) {
+        playAttempts++;
+        if (playAttempts < maxPlayAttempts) {
+          rafId = requestAnimationFrame(tryPlay);
+        }
+      }
+    };
+    
+    rafId = requestAnimationFrame(tryPlay);
+  };
+
+  // Expose player ref and load function via window for other components
   useEffect(() => {
     (window as any).playlistPlayerRef = playerRef;
     (window as any).playlistPlayerReadyRef = isPlayerReadyRef;
     (window as any).playlistIsSeekingRef = isSeekingRef;
     (window as any).playlistSeekTimeoutRef = seekTimeoutRef;
+    (window as any).playlistLoadVideoImmediately = loadVideoImmediately;
     return () => {
       delete (window as any).playlistPlayerRef;
       delete (window as any).playlistPlayerReadyRef;
       delete (window as any).playlistIsSeekingRef;
       delete (window as any).playlistSeekTimeoutRef;
+      delete (window as any).playlistLoadVideoImmediately;
     };
   }, []);
 
