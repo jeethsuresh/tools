@@ -5,6 +5,8 @@ import CsvJsonTool from "./csvjson/CsvJsonTool";
 import TimerStopwatchTool from "./timer/TimerStopwatchTool";
 import TimezoneTool from "./timezone/TimezoneTool";
 import PhotoBoothTool from "./photobooth/PhotoBoothTool";
+import PlaylistTool from "./playlist/PlaylistTool";
+import IPMaskTool from "./ipmask/IPMaskTool";
 
 /**
  * Registry of all available tools
@@ -58,6 +60,22 @@ export const tools: Tool[] = [
       description: "Test your webcam and microphone with photo capture",
     },
     component: PhotoBoothTool,
+  },
+  {
+    metadata: {
+      id: "playlist",
+      name: "Music Playlist",
+      description: "Create and play playlists of YouTube music videos",
+    },
+    component: PlaylistTool,
+  },
+  {
+    metadata: {
+      id: "ipmask",
+      name: "IP Masking Calculator",
+      description: "Calculate subnet masks, check network classes, detect conflicts, and generate optimal subnets",
+    },
+    component: IPMaskTool,
   },
 ];
 
