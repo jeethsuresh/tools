@@ -1,16 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import DetailPane from "@/components/DetailPane";
 import { getAllToolMetadata, getToolById } from "@/tools/registry";
 
 export default function Home() {
+  const searchParams = useSearchParams();
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const toolsMetadata = getAllToolMetadata();
   const activeTool = activeToolId ? getToolById(activeToolId) : null;
   const ActiveToolComponent = activeTool?.component;
+
+  // Check for tool query parameter on mount
+  useEffect(() => {
+    const toolParam = searchParams.get("tool");
+    if (toolParam) {
+      const tool = getToolById(toolParam);
+      if (tool) {
+        setActiveToolId(toolParam);
+      }
+    }
+  }, [searchParams]);
 
   const handleToolSelect = (toolId: string) => {
     setActiveToolId(toolId);

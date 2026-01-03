@@ -8,6 +8,7 @@ import PhotoBoothTool from "./photobooth/PhotoBoothTool";
 import PlaylistTool from "./playlist/PlaylistTool";
 import IPMaskTool from "./ipmask/IPMaskTool";
 import DiaryTool from "./diary/DiaryTool";
+import QRCodeTool from "./qrcode/QRCodeTool";
 
 /**
  * Registry of all available tools
@@ -85,6 +86,14 @@ export const tools: Tool[] = [
       description: "Journal entries and event planning with calendar views (day/week/month)",
     },
     component: DiaryTool,
+  },
+  {
+    metadata: {
+      id: "qrcode",
+      name: "QR Code Generator & Scanner",
+      description: "Generate QR codes from text or scan QR codes with your camera",
+    },
+    component: QRCodeTool,
   },
 ];
 
