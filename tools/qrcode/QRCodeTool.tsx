@@ -118,19 +118,18 @@ function QRCodeToolContent({}: ToolProps) {
           const html5QrCode = new Html5Qrcode(qrReaderRef.current!.id);
           scannerRef.current = html5QrCode;
 
-          // Calculate full screen dimensions for scanning area
-          // Use the full viewport dimensions to maximize scanning area
+          // Use a large but practical scanning area
+          // This allows scanning QR codes of various sizes without requiring them to fill the screen
           const viewportWidth = window.innerWidth;
           const viewportHeight = window.innerHeight;
-          // Use the full dimensions for maximum scanning area
-          const qrBoxWidth = viewportWidth;
-          const qrBoxHeight = viewportHeight;
+          // Use 80% of the smaller dimension, capped at 800px for optimal scanning
+          const scanSize = Math.min(Math.min(viewportWidth, viewportHeight) * 0.8, 800);
 
           await html5QrCode.start(
             { facingMode: "environment" }, // Use back camera
             {
               fps: 10,
-              qrbox: { width: qrBoxWidth, height: qrBoxHeight },
+              qrbox: { width: scanSize, height: scanSize },
             },
             (decodedText) => {
               // Successfully scanned
