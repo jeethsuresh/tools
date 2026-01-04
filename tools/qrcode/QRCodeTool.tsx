@@ -118,11 +118,19 @@ function QRCodeToolContent({}: ToolProps) {
           const html5QrCode = new Html5Qrcode(qrReaderRef.current!.id);
           scannerRef.current = html5QrCode;
 
+          // Calculate full screen dimensions for scanning area
+          // Use the full viewport dimensions to maximize scanning area
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          // Use the full dimensions for maximum scanning area
+          const qrBoxWidth = viewportWidth;
+          const qrBoxHeight = viewportHeight;
+
           await html5QrCode.start(
             { facingMode: "environment" }, // Use back camera
             {
               fps: 10,
-              qrbox: { width: 250, height: 250 },
+              qrbox: { width: qrBoxWidth, height: qrBoxHeight },
             },
             (decodedText) => {
               // Successfully scanned
@@ -208,89 +216,82 @@ function QRCodeToolContent({}: ToolProps) {
   const qrValue = getQrValue();
 
   return (
-    <div className="flex flex-col h-full min-h-screen p-6">
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
-        QR Code Generator & Scanner
-      </h1>
+    <>
+      <div className="flex flex-col h-full min-h-screen p-6">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+          QR Code Generator & Scanner
+        </h1>
 
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
-        {/* Left side - Text input and controls */}
-        <div className="flex-1 flex flex-col gap-4 min-w-0 resize-x overflow-auto" style={{ minWidth: '300px', maxWidth: '80%' }}>
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Text to encode:
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isUrlQrCode}
-                onChange={(e) => setIsUrlQrCode(e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                URL QR code
-              </span>
-            </label>
-          </div>
-
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="flex-1 w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-none font-mono text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-            placeholder="Enter text to generate QR code, or scan a QR code..."
-          />
-
-          {isUrlQrCode && text && (
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">
-                Generated URL:
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 break-all font-mono">
-                {generateUrl()}
-              </p>
+        <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+          {/* Left side - Text input and controls */}
+          <div className="flex-1 flex flex-col gap-4 min-w-0 resize-x overflow-auto" style={{ minWidth: '300px', maxWidth: '80%' }}>
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Text to encode:
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isUrlQrCode}
+                  onChange={(e) => setIsUrlQrCode(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  URL QR code
+                </span>
+              </label>
             </div>
-          )}
 
-          {/* Scan button */}
-          <div className="flex gap-3">
-            {!isScanning ? (
-              <button
-                onClick={startScanning}
-                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-              >
-                Start Scanning
-              </button>
-            ) : (
-              <button
-                onClick={stopScanning}
-                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-              >
-                Stop Scanning
-              </button>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="flex-1 w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-none font-mono text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+              placeholder="Enter text to generate QR code, or scan a QR code..."
+            />
+
+            {isUrlQrCode && text && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">
+                  Generated URL:
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 break-all font-mono">
+                  {generateUrl()}
+                </p>
+              </div>
             )}
-            <button
-              onClick={() => setText("")}
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
 
-        {/* Right side - QR code display and scanner */}
-        <div className="flex-1 flex flex-col gap-4 min-w-0 resize-x overflow-auto" style={{ minWidth: '300px', maxWidth: '80%' }}>
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            QR Code:
-          </label>
-
-          {isScanning ? (
-            <div
-              ref={scanAreaRef}
-              className="flex-1 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 overflow-hidden min-h-0"
-            >
-              <div ref={qrReaderRef} id="qr-reader" className="w-full h-full" />
+            {/* Scan button */}
+            <div className="flex gap-3">
+              {!isScanning ? (
+                <button
+                  onClick={startScanning}
+                  className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                >
+                  Start Scanning
+                </button>
+              ) : (
+                <button
+                  onClick={stopScanning}
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                >
+                  Stop Scanning
+                </button>
+              )}
+              <button
+                onClick={() => setText("")}
+                className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              >
+                Clear
+              </button>
             </div>
-          ) : (
+          </div>
+
+          {/* Right side - QR code display */}
+          <div className="flex-1 flex flex-col gap-4 min-w-0 resize-x overflow-auto" style={{ minWidth: '300px', maxWidth: '80%' }}>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              QR Code:
+            </label>
+
             <div 
               ref={qrCodeContainerRef}
               className="flex-1 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-4 min-h-0"
@@ -319,10 +320,33 @@ function QRCodeToolContent({}: ToolProps) {
                 </p>
               )}
             </div>
-          )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Full-screen modal for QR code scanning */}
+      {isScanning && (
+        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+          <div className="relative w-full h-full flex flex-col">
+            {/* Close button */}
+            <button
+              onClick={stopScanning}
+              className="absolute top-4 right-4 z-10 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            >
+              Close Scanner
+            </button>
+            
+            {/* Scanner area - fills entire screen */}
+            <div
+              ref={scanAreaRef}
+              className="absolute inset-0 w-full h-full overflow-hidden"
+            >
+              <div ref={qrReaderRef} id="qr-reader" className="w-full h-full" />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
