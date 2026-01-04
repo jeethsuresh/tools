@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { Html5Qrcode } from "html5-qrcode";
 import { ToolProps } from "@/types/tool";
 
-export default function QRCodeTool({}: ToolProps) {
+function QRCodeToolContent({}: ToolProps) {
   const searchParams = useSearchParams();
   const [text, setText] = useState("");
   const [isScanning, setIsScanning] = useState(false);
@@ -14,6 +14,13 @@ export default function QRCodeTool({}: ToolProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scanAreaRef = useRef<HTMLDivElement>(null);
   const qrReaderRef = useRef<HTMLDivElement>(null);
+  const qrCodeContainerRef = useRef<HTMLDivElement>(null);
+  const [qrCodeSize, setQrCodeSize] = useState(256);
+  const lastAlertedLength = useRef<number>(0);
+  
+  // Maximum length for QR code data (conservative limit for level M)
+  // Level M, version 40 can hold ~2331 alphanumeric chars, we use 2000 for safety
+  const MAX_QR_CODE_LENGTH = 2000;
 
   // Check for query parameter on mount
   useEffect(() => {
@@ -141,6 +148,32 @@ export default function QRCodeTool({}: ToolProps) {
     }
   }, [isScanning, stopScanning]);
 
+  // Update QR code size based on container width
+  useEffect(() => {
+    const updateQrCodeSize = () => {
+      if (qrCodeContainerRef.current) {
+        const containerWidth = qrCodeContainerRef.current.clientWidth;
+        // Leave some padding (32px on each side = 64px total, plus 16px for margin)
+        const availableWidth = containerWidth - 80;
+        setQrCodeSize(Math.max(200, Math.min(availableWidth, 512)));
+      }
+    };
+
+    updateQrCodeSize();
+    window.addEventListener("resize", updateQrCodeSize);
+    
+    // Use ResizeObserver for more accurate size tracking
+    const resizeObserver = new ResizeObserver(updateQrCodeSize);
+    if (qrCodeContainerRef.current) {
+      resizeObserver.observe(qrCodeContainerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener("resize", updateQrCodeSize);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -150,7 +183,29 @@ export default function QRCodeTool({}: ToolProps) {
     };
   }, []);
 
-  const qrValue = isUrlQrCode ? generateUrl() : text;
+  // Truncate text if too long and show alert
+  const getQrValue = () => {
+    const value = isUrlQrCode ? generateUrl() : text;
+    
+    if (value && value.length > MAX_QR_CODE_LENGTH) {
+      // Only show alert if the length has changed significantly (to avoid spam)
+      // Show again if length increased by more than 100 chars or decreased below threshold
+      if (Math.abs(value.length - lastAlertedLength.current) > 100 || lastAlertedLength.current === 0) {
+        lastAlertedLength.current = value.length;
+        alert(`Data is too long for QR code (${value.length} characters). It has been truncated to ${MAX_QR_CODE_LENGTH} characters.`);
+      }
+      return value.substring(0, MAX_QR_CODE_LENGTH);
+    }
+    
+    // Reset alert tracking when data is within limits
+    if (value.length <= MAX_QR_CODE_LENGTH) {
+      lastAlertedLength.current = 0;
+    }
+    
+    return value;
+  };
+
+  const qrValue = getQrValue();
 
   return (
     <div className="flex flex-col h-full min-h-screen p-6">
@@ -158,9 +213,9 @@ export default function QRCodeTool({}: ToolProps) {
         QR Code Generator & Scanner
       </h1>
 
-      <div className="flex flex-col lg:flex-row gap-6 flex-1">
+      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
         {/* Left side - Text input and controls */}
-        <div className="flex-1 flex flex-col gap-4">
+        <div className="flex-1 flex flex-col gap-4 min-w-0 resize-x overflow-auto" style={{ minWidth: '300px', maxWidth: '80%' }}>
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Text to encode:
@@ -223,7 +278,7 @@ export default function QRCodeTool({}: ToolProps) {
         </div>
 
         {/* Right side - QR code display and scanner */}
-        <div className="flex-1 flex flex-col gap-4">
+        <div className="flex-1 flex flex-col gap-4 min-w-0 resize-x overflow-auto" style={{ minWidth: '300px', maxWidth: '80%' }}>
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             QR Code:
           </label>
@@ -231,22 +286,28 @@ export default function QRCodeTool({}: ToolProps) {
           {isScanning ? (
             <div
               ref={scanAreaRef}
-              className="flex-1 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 overflow-hidden"
+              className="flex-1 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 overflow-hidden min-h-0"
             >
               <div ref={qrReaderRef} id="qr-reader" className="w-full h-full" />
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-8">
+            <div 
+              ref={qrCodeContainerRef}
+              className="flex-1 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-4 min-h-0"
+            >
               {qrValue ? (
-                <div className="flex flex-col items-center gap-4">
-                  <QRCodeSVG
-                    value={qrValue}
-                    size={256}
-                    level="M"
-                    includeMargin={true}
-                    className="bg-white p-4 rounded-lg"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-xs">
+                <div className="flex flex-col items-center gap-4 w-full">
+                  <div className="w-full flex justify-center">
+                    <QRCodeSVG
+                      value={qrValue}
+                      size={qrCodeSize}
+                      level="M"
+                      includeMargin={true}
+                      className="bg-white p-2 rounded-lg w-full h-auto max-w-full"
+                      style={{ width: '100%', height: 'auto' }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-full px-4">
                     {isUrlQrCode
                       ? "Scan this QR code to open the URL and decode the text"
                       : "Scan this QR code to read the text"}
@@ -262,6 +323,23 @@ export default function QRCodeTool({}: ToolProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function QRCodeTool(props: ToolProps) {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col h-full min-h-screen p-6">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+          QR Code Generator & Scanner
+        </h1>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-gray-400 dark:text-gray-500">Loading...</p>
+        </div>
+      </div>
+    }>
+      <QRCodeToolContent {...props} />
+    </Suspense>
   );
 }
 

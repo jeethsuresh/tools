@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import DetailPane from "@/components/DetailPane";
 import { getAllToolMetadata, getToolById } from "@/tools/registry";
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -87,5 +87,21 @@ export default function Home() {
         )}
       </DetailPane>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Loading...
+          </h1>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
