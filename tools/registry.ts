@@ -9,6 +9,7 @@ import PlaylistTool from "./playlist/PlaylistTool";
 import IPMaskTool from "./ipmask/IPMaskTool";
 import DiaryTool from "./diary/DiaryTool";
 import QRCodeTool from "./qrcode/QRCodeTool";
+import PokerChipTool from "./pokerchips/PokerChipTool";
 
 /**
  * Registry of all available tools
@@ -94,6 +95,14 @@ export const tools: Tool[] = [
       description: "Generate QR codes from text or scan QR codes with your camera",
     },
     component: QRCodeTool,
+  },
+  {
+    metadata: {
+      id: "pokerchips",
+      name: "Poker Chip Calculator",
+      description: "Calculate poker chip values based on total buy-in (5 colors, 5 chips each per person)",
+    },
+    component: PokerChipTool,
   },
 ];
 
