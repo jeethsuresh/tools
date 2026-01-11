@@ -9,7 +9,7 @@ import PlaylistTool from "./playlist/PlaylistTool";
 import IPMaskTool from "./ipmask/IPMaskTool";
 import DiaryTool from "./diary/DiaryTool";
 import QRCodeTool from "./qrcode/QRCodeTool";
-import PokerChipTool from "./pokerchips/PokerChipTool";
+import PokerNightTool from "./pokernight/PokerNightTool";
 
 /**
  * Registry of all available tools
@@ -98,11 +98,11 @@ export const tools: Tool[] = [
   },
   {
     metadata: {
-      id: "pokerchips",
-      name: "Poker Chip Calculator",
-      description: "Calculate poker chip values based on total buy-in (5 colors, 5 chips each per person)",
+      id: "pokernight",
+      name: "Poker Night Cost Splitter",
+      description: "Track costs and calculate who owes whom for poker night expenses",
     },
-    component: PokerChipTool,
+    component: PokerNightTool,
   },
 ];
 
