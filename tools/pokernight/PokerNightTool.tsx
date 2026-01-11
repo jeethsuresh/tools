@@ -64,7 +64,8 @@ function PokerChipsSectionContent() {
     );
   };
 
-  // Calculate balanced chip distribution from target amount (even distribution)
+  // Calculate chip distribution from target amount, biasing towards lower-value chips but keeping counts balanced
+  // Always ensures total value is <= targetAmount and maximizes the value
   const calculateChipsFromAmount = (targetAmount: number): PersonChips => {
     const chips: PersonChips = { red: 0, blue: 0, green: 0, white: 0, black: 0 };
     let remaining = targetAmount;
@@ -91,14 +92,128 @@ function PokerChipsSectionContent() {
       remaining -= fullSets * totalValuePerSet;
     }
 
-    // Distribute remaining amount using greedy algorithm for the remainder
-    const sortedColors: ChipColor[] = ["black", "white", "green", "blue", "red"];
-    for (const color of sortedColors) {
-      const value = chipValues[color];
-      if (value > 0 && remaining >= value) {
-        const count = Math.floor(remaining / value);
-        chips[color] += count;
-        remaining -= count * value;
+    // For remainder, prioritize equal distribution with bias towards lower-value chips
+    // Always add to the color with the LOWEST count, preferring lower-value chips when counts are equal
+    // NEVER add a chip if it would exceed the target amount
+    const sortedColorsLowToHigh = [...CHIP_COLORS].sort((a, b) => chipValues[a] - chipValues[b]);
+    
+    while (remaining > 0.01) {
+      // Find the minimum count across all chips
+      const currentCounts = [chips.red, chips.blue, chips.green, chips.white, chips.black];
+      const minCount = Math.min(...currentCounts);
+      
+      // Find colors that have the absolute minimum count
+      const colorsWithMinCount = sortedColorsLowToHigh.filter((color) => {
+        return chips[color] === minCount;
+      });
+      
+      let addedChip = false;
+      
+      // First, try to add to colors with the minimum count, preferring lower-value chips
+      // Only add if it won't exceed the target amount
+      for (const color of colorsWithMinCount) {
+        const value = chipValues[color];
+        if (value > 0 && remaining >= value) {
+          const newTotal = calculateBuyInAmount({ ...chips, [color]: chips[color] + 1 });
+          if (newTotal <= targetAmount) {
+            chips[color] += 1;
+            remaining -= value;
+            addedChip = true;
+            break;
+          }
+        }
+      }
+      
+      // If we can't add to minimum-count colors, try colors that are within 1 of minimum
+      if (!addedChip) {
+        const colorsWithinOne = sortedColorsLowToHigh.filter((color) => {
+          return chips[color] === minCount + 1;
+        });
+        
+        for (const color of colorsWithinOne) {
+          const value = chipValues[color];
+          if (value > 0 && remaining >= value) {
+            const newTotal = calculateBuyInAmount({ ...chips, [color]: chips[color] + 1 });
+            if (newTotal <= targetAmount) {
+              chips[color] += 1;
+              remaining -= value;
+              addedChip = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      // If we can't add any more chips without exceeding, stop
+      if (!addedChip) {
+        break;
+      }
+    }
+
+    // Final check: if we somehow exceeded, remove chips starting with highest value until we're below
+    let currentTotal = calculateBuyInAmount(chips);
+    if (currentTotal > targetAmount) {
+      // Sort colors by value (highest first) to remove expensive chips first
+      const sortedColorsHighToLow = [...CHIP_COLORS].sort((a, b) => chipValues[b] - chipValues[a]);
+      
+      for (const color of sortedColorsHighToLow) {
+        while (chips[color] > 0 && currentTotal > targetAmount) {
+          chips[color] -= 1;
+          currentTotal = calculateBuyInAmount(chips);
+        }
+      }
+    }
+
+    // Now try to maximize: add back lower-value chips to get as close as possible to target
+    currentTotal = calculateBuyInAmount(chips);
+    remaining = targetAmount - currentTotal;
+    
+    // Try to add more chips, starting with lowest value, to maximize the total
+    while (remaining > 0.01) {
+      let addedChip = false;
+      
+      // Find minimum count and try to add to those colors first
+      const currentCounts = [chips.red, chips.blue, chips.green, chips.white, chips.black];
+      const minCount = Math.min(...currentCounts);
+      const colorsWithMinCount = sortedColorsLowToHigh.filter((color) => {
+        return chips[color] === minCount;
+      });
+      
+      for (const color of colorsWithMinCount) {
+        const value = chipValues[color];
+        if (value > 0 && remaining >= value) {
+          const newTotal = calculateBuyInAmount({ ...chips, [color]: chips[color] + 1 });
+          if (newTotal <= targetAmount) {
+            chips[color] += 1;
+            remaining -= value;
+            addedChip = true;
+            break;
+          }
+        }
+      }
+      
+      // If we can't add to minimum-count colors, try colors within 1
+      if (!addedChip) {
+        const colorsWithinOne = sortedColorsLowToHigh.filter((color) => {
+          return chips[color] === minCount + 1;
+        });
+        
+        for (const color of colorsWithinOne) {
+          const value = chipValues[color];
+          if (value > 0 && remaining >= value) {
+            const newTotal = calculateBuyInAmount({ ...chips, [color]: chips[color] + 1 });
+            if (newTotal <= targetAmount) {
+              chips[color] += 1;
+              remaining -= value;
+              addedChip = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (!addedChip) {
+        break;
       }
     }
 
@@ -135,16 +250,127 @@ function PokerChipsSectionContent() {
       }
     }
 
-    // Distribute any remainder using greedy algorithm
-    const sortedRemainingColors: ChipColor[] = ["black", "white", "green", "blue", "red"].filter(
-      (c) => c !== changedColor
-    );
-    for (const color of sortedRemainingColors) {
-      const value = chipValues[color];
-      if (value > 0 && remaining >= value) {
-        const count = Math.floor(remaining / value);
-        newChips[color] += count;
-        remaining -= count * value;
+    // Distribute any remainder to keep counts balanced, with bias towards lower-value chips
+    // NEVER exceed the target amount
+    const sortedRemainingColors = [...remainingColors].sort((a, b) => chipValues[a] - chipValues[b]);
+    
+    while (remaining > 0.01) {
+      // Find the minimum count across remaining chips
+      const currentCounts = remainingColors.map((color) => newChips[color]);
+      const minCount = Math.min(...currentCounts);
+      
+      // Find colors that have the absolute minimum count
+      const colorsWithMinCount = sortedRemainingColors.filter((color) => {
+        return newChips[color] === minCount;
+      });
+      
+      let addedChip = false;
+      
+      // First, try to add to colors with the minimum count, preferring lower-value chips
+      // Only add if it won't exceed the target amount
+      for (const color of colorsWithMinCount) {
+        const value = chipValues[color];
+        if (value > 0 && remaining >= value) {
+          const newTotal = calculateBuyInAmount({ ...newChips, [color]: newChips[color] + 1 });
+          if (newTotal <= targetAmount) {
+            newChips[color] += 1;
+            remaining -= value;
+            addedChip = true;
+            break;
+          }
+        }
+      }
+      
+      // If we can't add to minimum-count colors, try colors that are within 1 of minimum
+      if (!addedChip) {
+        const colorsWithinOne = sortedRemainingColors.filter((color) => {
+          return newChips[color] === minCount + 1;
+        });
+        
+        for (const color of colorsWithinOne) {
+          const value = chipValues[color];
+          if (value > 0 && remaining >= value) {
+            const newTotal = calculateBuyInAmount({ ...newChips, [color]: newChips[color] + 1 });
+            if (newTotal <= targetAmount) {
+              newChips[color] += 1;
+              remaining -= value;
+              addedChip = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      // If we can't add any more chips without exceeding, stop
+      if (!addedChip) {
+        break;
+      }
+    }
+
+    // Final check: if we somehow exceeded, remove chips starting with highest value until we're below
+    let currentTotal = calculateBuyInAmount(newChips);
+    if (currentTotal > targetAmount) {
+      // Sort remaining colors by value (highest first) to remove expensive chips first
+      const sortedRemainingHighToLow = [...remainingColors].sort((a, b) => chipValues[b] - chipValues[a]);
+      
+      for (const color of sortedRemainingHighToLow) {
+        while (newChips[color] > 0 && currentTotal > targetAmount) {
+          newChips[color] -= 1;
+          currentTotal = calculateBuyInAmount(newChips);
+        }
+      }
+    }
+
+    // Now try to maximize: add back lower-value chips to get as close as possible to target
+    currentTotal = calculateBuyInAmount(newChips);
+    remaining = targetAmount - currentTotal;
+    
+    // Try to add more chips, starting with lowest value, to maximize the total
+    while (remaining > 0.01) {
+      let addedChip = false;
+      
+      // Find minimum count and try to add to those colors first
+      const currentCounts = remainingColors.map((color) => newChips[color]);
+      const minCount = Math.min(...currentCounts);
+      const colorsWithMinCount = sortedRemainingColors.filter((color) => {
+        return newChips[color] === minCount;
+      });
+      
+      for (const color of colorsWithMinCount) {
+        const value = chipValues[color];
+        if (value > 0 && remaining >= value) {
+          const newTotal = calculateBuyInAmount({ ...newChips, [color]: newChips[color] + 1 });
+          if (newTotal <= targetAmount) {
+            newChips[color] += 1;
+            remaining -= value;
+            addedChip = true;
+            break;
+          }
+        }
+      }
+      
+      // If we can't add to minimum-count colors, try colors within 1
+      if (!addedChip) {
+        const colorsWithinOne = sortedRemainingColors.filter((color) => {
+          return newChips[color] === minCount + 1;
+        });
+        
+        for (const color of colorsWithinOne) {
+          const value = chipValues[color];
+          if (value > 0 && remaining >= value) {
+            const newTotal = calculateBuyInAmount({ ...newChips, [color]: newChips[color] + 1 });
+            if (newTotal <= targetAmount) {
+              newChips[color] += 1;
+              remaining -= value;
+              addedChip = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (!addedChip) {
+        break;
       }
     }
 
@@ -170,19 +396,26 @@ function PokerChipsSectionContent() {
     newChips[color] = Math.max(0, newChips[color] + delta);
     setLastChangedChip(color);
     
-    // If we have a target amount, rebalance around the changed chip
+    // If we have a target amount, check if we need to rebalance
     if (buyInAmount && !isNaN(parseFloat(buyInAmount))) {
       const targetAmount = parseFloat(buyInAmount);
-      const rebalanced = rebalanceChips(newChips, color, targetAmount);
-      setBuyInChips(rebalanced);
-      // Update buy-in amount to match actual chip value (may be slightly different)
-      const actualAmount = calculateBuyInAmount(rebalanced);
-      setBuyInAmount(actualAmount.toFixed(2));
+      const newTotal = calculateBuyInAmount(newChips);
+      
+      // When adding a chip: only rebalance if new total exceeds buy-in
+      // When removing a chip: never rebalance (just remove the chip)
+      const shouldRebalance = delta > 0 && newTotal > targetAmount;
+      
+      if (shouldRebalance) {
+        // Need to rebalance to stay under the target and maximize
+        const rebalanced = rebalanceChips(newChips, color, targetAmount);
+        setBuyInChips(rebalanced);
+      } else {
+        // No rebalancing needed, just update chips
+        setBuyInChips(newChips);
+      }
     } else {
-      // No target amount, just update chips and recalculate amount
+      // No target amount, just update chips
       setBuyInChips(newChips);
-      const actualAmount = calculateBuyInAmount(newChips);
-      setBuyInAmount(actualAmount.toFixed(2));
     }
   };
 
@@ -193,7 +426,6 @@ function PokerChipsSectionContent() {
       chips: buyInChips,
     });
     setSelectedPersonForBuyIn("");
-    setBuyInChips({ red: 0, blue: 0, green: 0, white: 0, black: 0 });
     setBuyInAmount("");
     setLastChangedChip(null);
   };
