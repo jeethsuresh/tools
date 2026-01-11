@@ -26,7 +26,7 @@ const CHIP_COLOR_NAMES: Record<ChipColor, string> = {
   black: "Black",
 };
 
-function PokerChipsSection() {
+function PokerChipsSectionContent() {
   const {
     people,
     chipValues,
@@ -199,18 +199,15 @@ function PokerChipsSection() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-4">
+    <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Poker Chips
-        </h2>
         <div className="flex gap-2">
           <button
             onClick={() => setViewMode("buyin")}
             className={`px-3 py-1 text-sm rounded transition-colors ${
               viewMode === "buyin"
                 ? "bg-blue-600 text-white"
-                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
             }`}
           >
             Buy-in
@@ -220,7 +217,7 @@ function PokerChipsSection() {
             className={`px-3 py-1 text-sm rounded transition-colors ${
               viewMode === "endofnight"
                 ? "bg-blue-600 text-white"
-                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
             }`}
           >
             End of Night
@@ -230,13 +227,13 @@ function PokerChipsSection() {
 
       {/* Chip Values */}
       <div className="mb-4 pb-4 border-b border-gray-300 dark:border-gray-600">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 md:mb-2">
           Chip Values ($)
         </label>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-5 gap-3 md:gap-2">
           {CHIP_COLORS.map((color) => (
             <div key={color}>
-              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2 md:mb-1">
                 {CHIP_COLOR_NAMES[color]}
               </label>
               <input
@@ -245,7 +242,7 @@ function PokerChipsSection() {
                 min="0"
                 value={chipValues[color]}
                 onChange={(e) => setChipValue(color, parseFloat(e.target.value) || 0)}
-                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 md:px-2 md:py-1 text-base md:text-sm border-2 md:border border-gray-300 dark:border-gray-600 rounded-lg md:rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 touch-manipulation"
               />
             </div>
           ))}
@@ -259,7 +256,7 @@ function PokerChipsSection() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Person
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 md:gap-2">
               {people.map((person) => {
                 const isSelected = selectedPersonForBuyIn === person.id;
                 const personBuyIns = buyIns.filter((b) => b.personId === person.id);
@@ -271,17 +268,17 @@ function PokerChipsSection() {
                     onClick={() => {
                       setSelectedPersonForBuyIn(person.id);
                     }}
-                    className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                    className={`px-4 py-2 md:px-3 md:py-1 rounded-full text-base md:text-sm font-medium transition-colors touch-manipulation ${
                       isSelected
                         ? "bg-green-600 dark:bg-green-700 text-white ring-2 ring-green-400"
                         : hasBuyIn
                         ? "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 active:bg-gray-400 dark:active:bg-gray-500"
                     }`}
                   >
                     {person.name}
                     {hasBuyIn && !isSelected && (
-                      <span className="ml-1 text-xs">
+                      <span className="ml-1 text-xs md:text-xs">
                         ({personBuyIns.length})
                       </span>
                     )}
@@ -307,10 +304,10 @@ function PokerChipsSection() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Chips
                 </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3 md:gap-2">
                   {CHIP_COLORS.map((color) => {
                     const count = buyInChips[color];
                     const chipColorClasses: Record<ChipColor, string> = {
@@ -323,24 +320,26 @@ function PokerChipsSection() {
                     return (
                       <div
                         key={color}
-                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm border ${chipColorClasses[color]}`}
+                        className={`inline-flex items-center gap-2 md:gap-1.5 px-4 py-2 md:px-3 md:py-1 rounded-full text-base md:text-sm border-2 md:border ${chipColorClasses[color]}`}
                       >
-                        <span>{CHIP_COLOR_NAMES[color]}</span>
-                        <div className="flex items-center gap-1">
+                        <span className="font-medium">{CHIP_COLOR_NAMES[color]}</span>
+                        <div className="flex items-center gap-1.5 md:gap-1">
                           <button
                             type="button"
                             onClick={() => handleChipChange(color, -1)}
-                            className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10"
+                            className="w-8 h-8 md:w-5 md:h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 active:bg-black/20 dark:active:bg-white/20 touch-manipulation"
+                            aria-label={`Decrease ${CHIP_COLOR_NAMES[color]} chips`}
                           >
                             -
                           </button>
-                          <span className="w-8 text-center font-medium">
+                          <span className="w-10 md:w-8 text-center font-medium">
                             {count}
                           </span>
                           <button
                             type="button"
                             onClick={() => handleChipChange(color, 1)}
-                            className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10"
+                            className="w-8 h-8 md:w-5 md:h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 active:bg-black/20 dark:active:bg-white/20 touch-manipulation"
+                            aria-label={`Increase ${CHIP_COLOR_NAMES[color]} chips`}
                           >
                             +
                           </button>
@@ -349,13 +348,13 @@ function PokerChipsSection() {
                     );
                   })}
                 </div>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                <p className="mt-3 md:mt-2 text-sm text-gray-600 dark:text-gray-400">
                   Actual amount: ${calculateBuyInAmount(buyInChips).toFixed(2)}
                 </p>
               </div>
               <button
                 onClick={handleAddBuyIn}
-                className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                className="w-full px-4 py-3 md:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-base md:text-sm font-medium touch-manipulation active:bg-green-800"
               >
                 Add Buy-in
               </button>
@@ -421,21 +420,21 @@ function PokerChipsSection() {
             return (
               <div
                 key={person.id}
-                className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                className="p-4 md:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
               >
-                <div className="font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <div className="font-medium text-gray-900 dark:text-gray-100 mb-3 md:mb-2">
                   {person.name}
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3 md:gap-2">
                   {CHIP_COLORS.map((color) => {
                     const count = currentChips[color];
                     return (
                       <div
                         key={color}
-                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm border ${chipColorClasses[color]}`}
+                        className={`inline-flex items-center gap-2 md:gap-1.5 px-4 py-2 md:px-3 md:py-1 rounded-full text-base md:text-sm border-2 md:border ${chipColorClasses[color]}`}
                       >
-                        <span>{CHIP_COLOR_NAMES[color]}</span>
-                        <div className="flex items-center gap-1">
+                        <span className="font-medium">{CHIP_COLOR_NAMES[color]}</span>
+                        <div className="flex items-center gap-1.5 md:gap-1">
                           <button
                             type="button"
                             onClick={() =>
@@ -444,11 +443,12 @@ function PokerChipsSection() {
                                 [color]: Math.max(0, count - 1),
                               })
                             }
-                            className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10"
+                            className="w-8 h-8 md:w-5 md:h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 active:bg-black/20 dark:active:bg-white/20 touch-manipulation"
+                            aria-label={`Decrease ${CHIP_COLOR_NAMES[color]} chips for ${person.name}`}
                           >
                             -
                           </button>
-                          <span className="w-8 text-center font-medium">
+                          <span className="w-10 md:w-8 text-center font-medium">
                             {count}
                           </span>
                           <button
@@ -459,7 +459,8 @@ function PokerChipsSection() {
                                 [color]: count + 1,
                               })
                             }
-                            className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10"
+                            className="w-8 h-8 md:w-5 md:h-5 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 active:bg-black/20 dark:active:bg-white/20 touch-manipulation"
+                            aria-label={`Increase ${CHIP_COLOR_NAMES[color]} chips for ${person.name}`}
                           >
                             +
                           </button>
@@ -500,6 +501,7 @@ export default function PokerNightTool({}: ToolProps) {
   const [newCostAmount, setNewCostAmount] = useState("");
   const [newCostDescription, setNewCostDescription] = useState("");
   const [personInputValue, setPersonInputValue] = useState("");
+  const [costChipTab, setCostChipTab] = useState<"cost" | "chips">("cost");
 
   // Calculate chip value for a person
   const calculateChipValue = (chips: PersonChips): number => {
@@ -653,7 +655,7 @@ export default function PokerNightTool({}: ToolProps) {
     people.length > 0 ? totalCosts / people.length : 0;
 
   return (
-    <div className="flex flex-col h-full min-h-screen p-6 max-w-6xl mx-auto">
+    <div className="flex flex-col h-full min-h-screen p-4 md:p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
           Poker Night Cost Splitter
@@ -677,18 +679,18 @@ export default function PokerNightTool({}: ToolProps) {
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             People
           </label>
-          <div className="flex flex-wrap gap-2 p-3 min-h-[3rem] border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+          <div className="flex flex-wrap gap-2 md:gap-2 p-3 md:p-3 min-h-[3.5rem] md:min-h-[3rem] border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
             {people.map((person) => {
               const isSelectedForCost = newCostPerson === person.id;
               return (
                 <div
                   key={person.id}
-                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors ${
+                  className={`inline-flex items-center gap-1.5 md:gap-1 px-3 py-2 md:px-3 md:py-1 rounded-full text-base md:text-sm transition-colors touch-manipulation ${
                     isSelectedForCost && person.hasContributed
                       ? "bg-green-600 dark:bg-green-700 text-white ring-2 ring-green-400 cursor-pointer"
                       : person.hasContributed
-                      ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-900/40 cursor-pointer"
-                      : "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
+                      ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-900/40 cursor-pointer active:bg-green-300 dark:active:bg-green-900/50"
+                      : "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 active:bg-blue-200 dark:active:bg-blue-900/40"
                   }`}
                   onClick={() => {
                     if (person.hasContributed) {
@@ -706,17 +708,17 @@ export default function PokerNightTool({}: ToolProps) {
                       : "Click to mark as contributor"
                   }
                 >
-                  <span>{person.name}</span>
+                  <span className="font-medium">{person.name}</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       removePerson(person.id);
                     }}
-                    className="ml-1 hover:opacity-80 rounded-full p-0.5 transition-opacity"
+                    className="ml-1 hover:opacity-80 rounded-full p-1.5 md:p-0.5 transition-opacity touch-manipulation min-w-[32px] md:min-w-0 min-h-[32px] md:min-h-0 flex items-center justify-center"
                     aria-label={`Remove ${person.name}`}
                   >
                     <svg
-                      className="w-4 h-4"
+                      className="w-5 h-5 md:w-4 md:h-4"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -737,7 +739,7 @@ export default function PokerNightTool({}: ToolProps) {
               value={personInputValue}
               onChange={(e) => setPersonInputValue(e.target.value)}
               onKeyDown={handlePersonInputKeyDown}
-              className="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400"
+              className="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 text-base md:text-sm py-1 touch-manipulation"
               placeholder={people.length === 0 ? "Type names and press Enter or comma" : "Add more people..."}
             />
           </div>
@@ -747,55 +749,80 @@ export default function PokerNightTool({}: ToolProps) {
         </div>
       </div>
 
-      {/* Add Cost and Poker Chips - Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Add Cost */}
+      {/* Add Cost and Poker Chips - Tabbed */}
+      <div className="mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 p-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Add Cost
-          </h2>
-          <form onSubmit={handleAddCost} className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Amount ($)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={newCostAmount}
-                  onChange={(e) => setNewCostAmount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Description (optional)
-                </label>
-                <input
-                  type="text"
-                  value={newCostDescription}
-                  onChange={(e) => setNewCostDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Pizza, Beer, etc."
-                />
-              </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Add Costs & Chips
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCostChipTab("cost")}
+                className={`px-3 py-1 text-sm rounded transition-colors ${
+                  costChipTab === "cost"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                }`}
+              >
+                Add Cost
+              </button>
+              <button
+                onClick={() => setCostChipTab("chips")}
+                className={`px-3 py-1 text-sm rounded transition-colors ${
+                  costChipTab === "chips"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                }`}
+              >
+                Poker Chips
+              </button>
             </div>
-            <button
-              type="submit"
-              disabled={!newCostPerson || people.filter((p) => p.hasContributed).length === 0}
-              className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Add Cost
-            </button>
-          </form>
-        </div>
+          </div>
 
-        {/* Poker Chips */}
-        <PokerChipsSection />
+          {costChipTab === "cost" ? (
+            <form onSubmit={handleAddCost} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Amount ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={newCostAmount}
+                    onChange={(e) => setNewCostAmount(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Description (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newCostDescription}
+                    onChange={(e) => setNewCostDescription(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Pizza, Beer, etc."
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={!newCostPerson || people.filter((p) => p.hasContributed).length === 0}
+                className="w-full px-4 py-3 md:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base md:text-sm font-medium touch-manipulation active:bg-green-800"
+              >
+                Add Cost
+              </button>
+            </form>
+          ) : (
+            <PokerChipsSectionContent />
+          )}
+        </div>
       </div>
 
       {/* Costs List - Full Width */}
